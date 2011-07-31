@@ -169,8 +169,36 @@ end
 
 helpers do
   include Rack::Utils
+
+  def create_vlan(data)
+    validate_new_vlan(data)
+    cidr = NetAddr::CIDR.create(data['cidr'])
+    vlan = Vlan.new(
+      :vlan => data['vlan'], 
+      :ip_version => cidr.version, 
+      :netmask => cidr.netmask,
+      :network => cidr.network,
+      :description => data['description']
+    )
+    vlan.gateway = data['gateway'] || cidr.range(1,1).first
+    vlan.save!
+    vlan
+  end
+
   def vlans
-    Vlan.all
+    vlans = Array.new
+    Vlan.all.each do |vlan|
+      vlans << vlan
+    end
+    vlans
+  end
+
+  def available_addresses(vlan)
+    available = Array.new
+    vlan.addresses.where(:in_use => false).each do |addr|
+      available << addr.address
+    end
+    available
   end
 
   def vlan(id)
