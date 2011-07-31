@@ -10,6 +10,9 @@ Mongoid.configure do |config|
     config.master = Mongo::Connection.new.db("godfather4")
 end
 
+## Begin Model Definitions
+#
+
 class Vlan
   include Mongoid::Document
   field :ip_version, :type => Integer
@@ -90,6 +93,9 @@ class Device
   end
 end
 
+#
+## End Model Definitions
+
 
 helpers do
   include Rack::Utils
@@ -101,6 +107,12 @@ helpers do
     Vlan.where(:vlan => id.to_i).first
   end
 end
+
+#
+## End Frontend Requests
+
+## API Requests
+#
 
 get '/api/vlans' do
   vlans.each do |vlan|
