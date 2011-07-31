@@ -1,0 +1,15 @@
+#content
+  %h2
+    %a{:title => @vlan.description, :href => url("/vlan/#{@vlan.vlan}")}= @vlan.description
+  %h3= @address.address
+  .address
+    - if @address.in_use
+
+    - else
+      %form{:action => '', :method => 'post'}
+        %fieldset
+          %ol
+            %li
+              %label{:for => 'hostname'} Hostname:
+              %input{:type => 'text', :name => 'hostname', :class => 'text'}
+          %input{:type => 'submit', :value => 'Use Address', :class => 'button'}

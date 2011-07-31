@@ -1,0 +1,15 @@
+#content
+  %h2 VLANs
+  .vlan_overview
+    %table
+      %tbody
+        %tr
+          %th VLAN
+          %th Description
+          %th Available IPs
+        - @vlans.each do |vlan|
+          %tr
+            %td= vlan.vlan
+            %td
+              %a{:title => vlan.description, :href => url("/vlan/#{vlan.vlan}")}= vlan.description
+            %td= vlan.available_addresses.size

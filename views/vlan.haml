@@ -1,0 +1,17 @@
+#content
+  %h2= @vlan.description
+  .vlan
+    %table
+      %tbody
+        %tr 
+          %th IP Address
+          %th Device Hostname
+          %th In Use
+        - @vlan.addresses.all.each do |addr|
+          %tr
+            %td
+              %a{:title => addr.address, :href => url("/vlan/#{@vlan.vlan}/addresses/#{addr.address}")}= addr.address
+            %td 
+              - if addr.device
+                = addr.device.hostname
+            %td= addr.in_use
