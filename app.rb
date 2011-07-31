@@ -3,7 +3,8 @@ require 'rubygems'
 require 'sinatra'
 require 'netaddr'
 require 'mongoid'
-require 'yaml'
+require 'json'
+require 'haml'
 
 Mongoid.configure do |config|
     config.master = Mongo::Connection.new.db("godfather4")
