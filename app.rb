@@ -25,10 +25,30 @@ class Vlan
 
   index :vlan, :unique => true
   validates_uniqueness_of :vlan
+  validates_format_of :netmask, :with => /\/\d+/
 
+  before_save :verify_no_overlap
+  before_save :verify_addresses
+  before_save :verify_gateway
   before_create :generate_addresses
 
-  def to_json
+  def available_addresses
+    available = Array.new
+    self.addresses.where(:in_use => false).each do |addr|
+      available << addr
+    end
+    available
+  end
+
+  def addresses_to_json
+    data = Hash.new
+    self.addresses.each do |addr|
+      data[addr.address] = addr.to_json
+    end
+    data
+  end
+
+  def to_h
     data = {
       :ip_version   => self.ip_version,
       :netmask      => self.netmask,
@@ -39,10 +59,13 @@ class Vlan
     }
     
     self.addresses.each do |addr|
-      data[:addresses][addr.address] = addr.to_json
+      data[:addresses][addr.address] = addr.to_h
     end
-
     data
+  end
+
+  def to_json
+    to_h.to_json
   end
 
   protected
@@ -50,6 +73,45 @@ class Vlan
     cidr = NetAddr::CIDR.create("#{self.network}#{self.netmask}")
     cidr.range(1, cidr.size-2).each do |address|
       self.addresses.new(:address => address, :in_use => false)
+    end
+  end
+  
+  # This checks that the addresses embedded
+  # actually should exist in the range, if the check fails
+  # delete all embedded addresses and re-generate them
+  def verify_addresses
+    cidr = NetAddr::CIDR.create("#{self.network}#{self.netmask}")
+    if not cidr.contains?(self.addresses.first.address) or not cidr.contains?(self.addresses.last.address)
+      self.addresses.delete_all
+      generate_addresses
+    end
+  end
+
+  # Make sure that the gateway is included in the ip range
+  def verify_gateway
+    cidr = NetAddr::CIDR.create("#{self.network}#{self.netmask}")
+    if not cidr.contains?(self.gateway)
+      raise "Gateway is not contained in the IP range"
+    end
+  end
+
+  # This loops through all VLANs to verify
+  # that there is no overlapping IP space
+  def verify_no_overlap
+    new_cidr = NetAddr::CIDR.create("#{self.network}#{self.netmask}")
+    new_vlan_min = NetAddr.ip_to_i(new_cidr.first)
+    new_vlan_max = NetAddr.ip_to_i(new_cidr.last)
+    Vlan.all.each do |vlan|
+      if vlan._id == self._id
+        next # skip checking yourself
+      end
+      vlan_cidr = NetAddr::CIDR.create("#{vlan.network}#{vlan.netmask}")
+      vlan_min = NetAddr.ip_to_i(vlan_cidr.first)
+      vlan_max = NetAddr.ip_to_i(vlan_cidr.last)
+      check_overlap = (vlan_min - new_vlan_max) * (new_vlan_min - vlan_max)
+      if check_overlap >= 0
+        raise "VLAN overlaps with existing vlan: #{vlan.vlan} (#{vlan.description})"
+      end
     end
   end
 end
