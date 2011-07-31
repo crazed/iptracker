@@ -10,5 +10,7 @@ A VLAN contains many IP addresses which are one to one mapped to devices.
     curl localhost:4567/api/vlan/2
 #### Update a vlan ####
     curl -i -X POST -d '{ "gateway": "10.0.1.2" }' localhost:4567/api/vlan/2
+#### Delete a vlan ####
+    curl -i -X DELETE localhost:4567/api/vlan/2
 ### Devices ###
 This is not implemented yet, but eventually a device will require a hostname, and have any amount of additional attributes tacked on, things like physical location, MAC addresses, etc can be added to the additional attributes field.
