@@ -204,6 +204,69 @@ helpers do
   def vlan(id)
     Vlan.where(:vlan => id.to_i).first
   end
+
+  def validate_new_vlan(data)
+    missing = Array.new
+    [ 'vlan', 'cidr', 'description' ].each do |req|
+      if not data.include?(req)
+        missing << req
+      end
+    end
+    raise "Missing required options: #{missing.join(', ')}" if missing.size > 0
+    
+    vlan = data['vlan'].to_i
+    raise 'Invalid VLAN' unless vlan
+  end
+
+  def update_vlan(vlan, data)
+    # check the supplied data, error out on 
+    # any invalid options
+    data.each do |k,v|
+      if vlan.fields.include?(k)
+        vlan.send("#{k.to_sym}=", v)
+      else
+        raise "Invalid field: #{k}"
+      end
+    end
+    vlan.save!
+    vlan
+  end
+
+
+end
+
+## Frontend Requests
+#
+
+get '/' do
+  @vlans = vlans
+  haml :index
+end
+
+get '/vlan/:vlan' do
+  vlan = vlan(params[:vlan])
+  if vlan.nil?
+    redirect to '/'
+  else
+    @vlan = vlan
+    haml :vlan
+  end
+end
+
+get '/vlan/:vlan/addresses/:address' do
+  vlan = vlan(params[:vlan])
+  if vlan.nil?
+    redirect to "/vlan/#{params[:vlan]}"
+  else
+    address = vlan.addresses.where(:address => params[:address]).first
+    if address.nil?
+      redirect to "/vlan/#{params[:vlan]}"
+    else
+      @vlan = vlan
+      @address = address
+      haml :address
+    end
+  end
 end
 
 #
@@ -213,81 +276,134 @@ end
 #
 
 get '/api/vlans' do
-  vlans.each do |vlan|
-    #p vlan.attributes
-    p vlan.to_h
-  end
   status 200
+  data = Array.new
+  vlans.each do |vlan|
+    data << vlan.to_h
+  end
+  body(data)
 end
 
 # remove a vlan id
 delete '/api/vlan/:id' do
+  vlan = vlan(params[:id])
+  if vlan.nil?
+    status 404
+    body({ :error => "Vlan with this ID not found." }.to_json)
+  else
+    begin
+      vlan.destroy
+      status 200
+    rescue Exception => error
+      status 400
+      body({ :error => error.to_s }.to_json)
+    end
+  end
 end
 
 # display a vlan id
 get '/api/vlan/:id' do
   vlan = vlan(params[:id])
-  if vlan
-    p vlan.to_json
-    status 200
-    body(vlan.to_json.to_yaml)
-  else
+  if vlan.nil?
     status 404
+    body({ :error => "Vlan with this ID not found." }.to_json)
+  else
+    status 200
+    body(vlan.to_json)
   end
 end
 
 # create a new vlan id
-put '/api/vlan/:id' do
+put '/api/vlan' do
+  begin
+    data = JSON.parse(request.body.string)
+    raise if data.nil?
+  rescue
+    status 400
+    body({ :error => 'Invalid JSON' }.to_json)
+    return
+  end
+
+  begin
+    vlan = create_vlan(data)
+    status 200
+    body(vlan.to_json)
+  rescue Exception => error
+    status 400
+    body({ :error => error.to_s }.to_json)
+  end
 end
 
 # update vlan id
 post '/api/vlan/:id' do
+  vlan = vlan(params[:id])
+  if vlan.nil?
+    status 404
+    body({ :error => 'VLAN does not exist' }.to_json)
+    return
+  end
+
+  begin
+    data = JSON.parse(request.body.string)
+    raise if data.nil?
+  rescue
+    status 400
+    body({ :error => 'Invalid JSON' }.to_json)
+    return
+  end
+
+  begin
+    vlan = update_vlan(vlan, data)
+    status 200
+    body(vlan.to_json)
+  rescue Exception => error
+    status 400
+    body({ :error => error.to_s }.to_json)
+  end
 end
 
 get '/api/vlan/:id/available_addresses' do
   vlan = vlan(params[:id])
-  if vlan
-    status 200
-    available_addresses = Array.new
-    vlan.addresses.where(:in_use => false).each do |addr|
-      available_addresses << addr.address
-    end
-    body(available_addresses.to_yaml)
-  else
+  if vlan.nil?
     status 404
+  else
+    status 200
+    body(available_addresses(vlan))
   end
 end
 
 get '/api/vlan/:id/addresses' do
   vlan = vlan(params[:id])
-  if vlan
-    status 200
-    addresses = Hash.new
-    vlan.addresses.each do |addr|
-      addresses.merge!(addr.address => addr.to_json)
-    end
-    body(addresses.to_yaml)
-  else
+  if vlan.nil?
     status 404
+  else
+    status 200
+    body(vlan.addresses_to_json)
   end
 end
 
 get '/api/vlan/:id/addresses/:address' do
   vlan = vlan(params[:id])
-  if vlan
-    status 200
+  if vlan.nil?
+    status 404
+  else
     address = nil
     vlan.addresses.where(:address => params[:address]).each do |addr|
-      address = addr.to_json
+      address = addr
     end
-    body(address.to_yaml)
-  else
-    status 404
+    if address.nil?
+      status 404
+    else
+      status 200
+      body(address.to_json)
+    end
   end
 end
 
 post '/api/vlan/:id/addresses/:address' do
 end
+
+after '/api/*', :provides => :json do ; end
 
 #
 ## End API Requests
