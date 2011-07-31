@@ -4,6 +4,9 @@ I wanted to come up with a simple way of storing and manipulating data regarding
 ## Authentication ##
 There is no authentication implemented just yet, but LDAP will likely be used as the main authentication mechanism.
 
+## Backend Storage ##
+I chose to use [mongoid](http://mongoid.org/) to create models for VLANs, IP Addresses, and Devices. This allows for easy data validation and since it's mongo, I can make the schema pretty flexible. This was mainly chosen since Devices will have an additional attributes section with user-defined keyword=>values. 
+
 ## Example Usage ##
 ### VLANs ###
 A VLAN contains many IP addresses which are one to one mapped to devices.
