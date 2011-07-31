@@ -127,16 +127,20 @@ class Address
   index :in_use
   validates_uniqueness_of :address
 
-  def to_json
+  def to_h
     data = {
       :in_use       => self.in_use
     }
 
     if self.device
-      data[:device] = self.device.to_json
+      data[:device] = self.device.to_h
     end
 
     data
+  end
+
+  def to_json
+    to_h.to_json
   end
 end
 
@@ -148,10 +152,14 @@ class Device
   index :hostname, :unique => true
   validates_uniqueness_of :hostname
 
-  def to_json
+  def to_h
     data = {
       :hostname     => self.hostname
     }
+  end
+
+  def to_json
+    to_h.to_json
   end
 end
 
