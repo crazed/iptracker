@@ -1,5 +1,8 @@
 # IP Tracker #
-I wanted to come up with a simple way of storing and manipulating data regarding IP addresses on the network, so I used Sinatra to create a simple REST api. Currently the frontend views are limited in what they can do and have no styling. This is the very start of the project, so a lot of functionality may be missing or incomplete.
+I wanted to come up with a simple way of storing and manipulating data regarding IP addresses on the network, so I used Sinatra to create a simple REST api. The idea here is to make this as flexible as possible for easy integration with any other application. Currently the frontend views are limited in what they can do and have no styling. This is the very start of the project, so a lot of functionality may be missing or incomplete.
+
+## Authentication ##
+There is no authentication implemented just yet, but LDAP will likely be used as the main authentication mechanism.
 
 ## Example Usage ##
 ### VLANs ###
